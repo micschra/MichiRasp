@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry exported="true" kind="lib" path="lib/junit.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-core-javadoc.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-core-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-core.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-device-javadoc.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-device-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-device.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-example-javadoc.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-example-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-example.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-gpio-extension-javadoc.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-gpio-extension-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-gpio-extension.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-service-javadoc.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-service-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/pi4j-service.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
