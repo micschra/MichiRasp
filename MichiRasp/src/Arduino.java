@@ -1,9 +1,7 @@
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import com.pi4j.io.i2c.I2CBus;
 import com.pi4j.io.i2c.I2CDevice;
@@ -32,17 +30,42 @@ public class Arduino {
 
 	private I2CBus bus;
 	private I2CDevice arduino;
+	private int address;
 	private static float delayBytes = 0.05f;
 	private static float delayReads = 0.05f;
 	private static float loopMinutes = 1f;
+	private static String serverIP = "10.0.0.9:8080";
+	private static String roomNr = "2";
+	private static Arduino[] sensors;
+	private static int reopenSensorsFrequency = 100;
+
+	public static Arduino[] getSensors() {
+		return sensors;
+	}
+
+	private int successfulRead = 0;
+
+	public int getSuccessfulRead() {
+		return successfulRead;
+	}
+
+	public int increaseSuccessfulRead() {
+		return ++successfulRead;
+	}
+
+	public void setSuccessfulRead(int successfulRead) {
+		this.successfulRead = successfulRead;
+	}
 
 	public static void debugInfo(String msg) {
 		if (verbose)
-			System.out.println("Connected to bus. OK.");
+			System.out.println(msg);
 	}
 
 	public Arduino(int address) throws I2CFactory.UnsupportedBusNumberException {
+		this.address = address;
 		open(address);
+		successfulRead = 0;
 	}
 
 	public void open(int address) throws UnsupportedBusNumberException {
@@ -51,7 +74,6 @@ public class Arduino {
 			bus = I2CFactory.getInstance(I2CBus.BUS_1); // Depends onthe RasPI
 														// version
 			debugInfo("Connected to bus. OK.");
-
 			// Get device itself
 			arduino = bus.getDevice(address);
 			debugInfo("Connected to device. OK.");
@@ -89,33 +111,24 @@ public class Arduino {
 		}
 	}
 
-	public String readState() {
-		String answer = "";
-/*		
-		for (int i = 0; i < 3; i++) {
-*/
-			try {
-				answer = readState(delayBytes);
-				debugInfo("Successful read (delaySec=" + (delayBytes) + "sec). Answer=" + answer);
-				return answer;
-			} catch (Exception e) {
-				System.out.println("IOException (delaySec=" + (delayBytes) + "sec).");
-//				delayBytes = 2 * delayBytes;
- 
-			}
-//		}
+	public String[] readState() {
+		String[] answer;
+		try {
+			answer = readState(delayBytes);
+			debugInfo("Successful read (delaySec=" + (delayBytes) + "sec). Answer=" + answer);
+			return answer;
+		} catch (Exception e) {
+			debugInfo("Arduino Read (" + getAddress() + "): " + e);
+		}
 		return null;
 	}
 
-	public String readState(float delaySeconds) throws Exception {
-		// Arduino vorwarnen dass gleich gelesen wird: '1'
-		// byte b = '1';
-		// writeArduino(b);
-		// debugInfo("Wrote to Arduino: " + b);
-
+	public String[] readState(float delaySeconds) throws Exception {
 		// jetzt solange lesen bis ein @ kommt
-		String inputFromArduino = "";
+		String inputFromArduino[] = new String[100];
+		int subID = 1;
 		int read = 0;
+		inputFromArduino[1] = "";
 		boolean weiterLesen = true;
 		long millisStart = System.currentTimeMillis();
 		while (weiterLesen) {
@@ -124,60 +137,145 @@ public class Arduino {
 									// kommen vereinzelt IOExceptions
 			if (read == '@')
 				weiterLesen = false;
-			else
-				inputFromArduino += Character.toString((char) read);
+			else {
+				if (read == '#') {
+					debugInfo("ReadState: " + inputFromArduino[subID]);
+					subID++;
+					inputFromArduino[subID] = "";
+				} else
+					inputFromArduino[subID] += Character.toString((char) read);
+			}
 		}
-		debugInfo("ReadALL (" + (System.currentTimeMillis() - millisStart) + "ms): " + inputFromArduino);
+		debugInfo("ReadState (" + (System.currentTimeMillis() - millisStart) + "ms): "
+				+ sensorStateArray2String(inputFromArduino));
 		return inputFromArduino;
 	}
 
 	public static void triggerRoomControl(String text) {
-		try {
-			URL url = new URL("http://10.0.0.9:8080/BiSuRo/trigger?room=1&info=" + text + "&action=setArduinoInfo");
-			URLConnection con = url.openConnection();
-			BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-			String inputLine;
-			while ((inputLine = in.readLine()) != null)
-				debugInfo(inputLine);
-			in.close();
-		} catch (Exception e) {
-			System.out.println(e);
+		String urlString = "http://" + serverIP + "/BiSuRo/trigger?room=" + roomNr + "&info=" + text
+				+ "&action=setArduinoInfo";
+		if (text.length()<40){
+			URLTrigger ut = new URLTrigger(urlString, sensors);
+			ut.callAsynchron();
+		}
+		else {
+			debugInfo("Text von Arduino verdächtig lang ("+text.length()+"): '"+text.substring(0,5)+"...' Trigger nicht aufgerufen.");
 		}
 	}
 
 	public static void main(String[] args) throws Exception {
-		if (args.length>0 && args[0]=="?") {
+		if (args.length == 0 || (args.length > 0 && args[0] == "?")) {
 			System.out.println("EXIT.GURU - Raspberry Arduino Bridge");
 			System.out.println("  Parameters: ");
+			System.out.println("  <ServerIP:port> String ");
+			System.out.println("  <roomNr> int default=2");
 			System.out.println("  <DelayAfterEachByteInSeconds> float default=0.05");
 			System.out.println("  <DelayAfterEachReadInSeconds> float default=0.05");
-			System.out.println("  <LoopForMinutes> float default=1");
+			System.out.println("  <LoopForMinutes> float default=1 (0 for endless)");
 			return;
 		}
-		if (args.length>0) delayBytes = Float.parseFloat(args[0]);
-		if (args.length>1) delayReads = Float.parseFloat(args[1]);
-		if (args.length>2) loopMinutes = Float.parseFloat(args[2]);
+		serverIP = args[0];
+		if (args.length > 1)
+			roomNr = args[1];
+		if (args.length > 2)
+			delayBytes = Float.parseFloat(args[2]);
+		if (args.length > 3)
+			delayReads = Float.parseFloat(args[3]);
+		if (args.length > 4)
+			loopMinutes = Float.parseFloat(args[4]);
 
-		System.out.println("Starting to poll Arduinos: delayBytes="+delayBytes+"sec, delayReads="+delayReads+"sec, loop="+loopMinutes+"min");
-		
-		Arduino sensor1 = new Arduino(ARDUINO_ADDRESS_1);
-		Arduino sensor2 = new Arduino(ARDUINO_ADDRESS_2);
+		sensors = new Arduino[50];
 
-		long startMillis=System.currentTimeMillis();
-		while ((System.currentTimeMillis()-startMillis)<(loopMinutes*60*1000)) {
-			handleSensor(sensor1);
-			handleSensor(sensor2);
+		System.out.println("Starting to poll Arduinos: roomNr=" + roomNr + ", server=" + serverIP + ", delayBytes="
+				+ delayBytes + "sec, delayReads=" + delayReads + "sec, loop=" + loopMinutes + "min");
+		openSensors();
+
+		long startMillis = System.currentTimeMillis();
+		boolean loopOn = true;
+		int counter = 0;
+		while (loopOn) {
+			for (int i = 0; i < sensors.length; i++) {
+				if (sensors[i] == null)
+					continue;
+				String[] answer = handleSensor(sensors[i]);
+
+			}
+			loopOn = (loopMinutes == 0) || ((System.currentTimeMillis() - startMillis) < (loopMinutes * 60 * 1000));
+			if (reopenSensorsFrequency>0 && ++counter>reopenSensorsFrequency) {
+				counter=0;
+				openSensors();
+				System.out.println("REOPENING SENSORS");
+			}
 		}
 		System.out.println("Bye!");
 	}
 
-	public static void handleSensor(Arduino sensor1) {
+	private static void openSensors() throws UnsupportedBusNumberException {
+		reopenSensor(ARDUINO_ADDRESS_1);
+		reopenSensor(ARDUINO_ADDRESS_2);
+	}
+
+	private static void reopenSensor(int id) throws UnsupportedBusNumberException {
+		debugInfo("Reopen Sensor " + id);
+		if (sensors[id] != null)
+			sensors[id].close();
+		sensors[id] = new Arduino(id);
+
+	}
+
+	public static String[] handleSensor(Arduino sensor) {
+		if (sensor == null)
+			return null;
+		System.out.print(formatNow()+"-(" + sensor.getAddress() + ")");
 		long millis1 = System.currentTimeMillis();
-		String sensorState = sensor1.readState();
+		String sensorState[] = sensor.readState();
 		long millis2 = System.currentTimeMillis();
-		triggerRoomControl(sensorState);
-		long millis3 = System.currentTimeMillis();
-		System.out.println("--- " + sensorState + " (READ: "+(millis2-millis1)+" ms, TRIGGER: "+(millis3-millis2)+" ms, TOTAL: "+(millis3-millis1)+" ms)");
+		long millis3 = 0;
+		if (sensorState != null) {
+			sensor.increaseSuccessfulRead();
+			for (int i = 0; i < sensorState.length; i++) {
+				if (sensorState[i] != null && sensorState[i].trim().length() > 0) {
+					triggerRoomControl(sensorState[i]);
+				}
+			}
+			millis3 = System.currentTimeMillis();
+			System.out.println("- success#" + sensor.getSuccessfulRead() + " - " + sensorStateArray2String(sensorState)
+					+ " (R: " + (millis2 - millis1) + "ms, T: " + (millis3 - millis2) + "ms)");
+		} else {
+			// I2C error?
+			millis3 = System.currentTimeMillis();
+			System.out.println("- failure! - " + sensorStateArray2String(sensorState) + " (R: " + (millis2 - millis1)
+					+ "ms, T: " + (millis3 - millis2) + "ms)");
+		}
+
 		delay(delayReads);
+		return sensorState;
+	}
+
+	public int getAddress() {
+		// TODO Auto-generated method stub
+		return address;
+	}
+
+	public static String sensorStateArray2String(String[] sensorState) {
+		String s = "{";
+		boolean schonWas = false;
+		if (sensorState != null) {
+			for (int i = 0; i < sensorState.length; i++) {
+				if (sensorState[i] != null && sensorState[i].trim().length() > 0) {
+					if (schonWas)
+						s += ", ";
+					s += "SubID=" + i + ": " + (sensorState[i].length()>40?"?NOISE?":sensorState[i]) + " ";
+					schonWas = true;
+				}
+			}
+		}
+		return s + "}";
+	}
+	
+	public static String formatNow() {
+		Date d = new Date();
+		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+		return sdf.format(d);
 	}
 }
