@@ -19,5 +19,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/pi4j-service-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/pi4j-service.jar"/>
 	<classpathentry kind="lib" path="lib/jl1.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/rf24-bcm-java.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
