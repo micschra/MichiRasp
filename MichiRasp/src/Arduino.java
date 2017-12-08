@@ -174,6 +174,12 @@ public class Arduino {
 			System.out.println("  <LoopForMinutes> float default=1 (0 for endless)");
 			return;
 		}
+
+		// start VIDEO
+		Thread videoThread = new Thread(new VideoPlayer());
+		videoThread.start();
+		
+		
 		serverIP = args[0];
 		if (args.length > 1)
 			roomNr = args[1];
@@ -188,6 +194,7 @@ public class Arduino {
 
 		System.out.println("Starting to poll Arduinos: roomNr=" + roomNr + ", server=" + serverIP + ", delayBytes="
 				+ delayBytes + "sec, delayReads=" + delayReads + "sec, loop=" + loopMinutes + "min");
+		
 		openSensors();
 
 		long startMillis = System.currentTimeMillis();
