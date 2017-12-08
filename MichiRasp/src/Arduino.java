@@ -23,8 +23,7 @@ import com.pi4j.io.i2c.I2CFactory.UnsupportedBusNumberException;
  * 
  */
 public class Arduino {
-	public final static int ARDUINO_ADDRESS_1 = 0x04;
-	public final static int ARDUINO_ADDRESS_2 = 0x05;
+	public final static int ARDUINO_ADDRESS_1 = 0x05;
 
 	private static boolean verbose = false;
 
@@ -174,6 +173,12 @@ public class Arduino {
 			System.out.println("  <LoopForMinutes> float default=1 (0 for endless)");
 			return;
 		}
+
+		// start VIDEO
+		Thread videoThread = new Thread(new VideoPlayer());
+		videoThread.start();
+		
+		
 		serverIP = args[0];
 		if (args.length > 1)
 			roomNr = args[1];
@@ -212,7 +217,7 @@ public class Arduino {
 
 	private static void openSensors() throws UnsupportedBusNumberException {
 		reopenSensor(ARDUINO_ADDRESS_1);
-		reopenSensor(ARDUINO_ADDRESS_2);
+		//reopenSensor(ARDUINO_ADDRESS_2);
 	}
 
 	private static void reopenSensor(int id) throws UnsupportedBusNumberException {
@@ -228,7 +233,7 @@ public class Arduino {
 			return null;
 		System.out.print(formatNow()+"-(" + sensor.getAddress() + ")");
 		long millis1 = System.currentTimeMillis();
-		String sensorState[] = sensor.readState();
+		String sensorState[] = sensor.readState(); // array of strings.. each string is a Arduino substatus
 		long millis2 = System.currentTimeMillis();
 		long millis3 = 0;
 		if (sensorState != null) {
