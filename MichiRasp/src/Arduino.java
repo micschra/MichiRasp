@@ -193,6 +193,7 @@ public class Arduino {
 
 		System.out.println("Starting to poll Arduinos: roomNr=" + roomNr + ", server=" + serverIP + ", delayBytes="
 				+ delayBytes + "sec, delayReads=" + delayReads + "sec, loop=" + loopMinutes + "min");
+		
 		openSensors();
 
 		long startMillis = System.currentTimeMillis();
