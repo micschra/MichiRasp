@@ -93,7 +93,7 @@ public class VideoPlayer extends Application implements Runnable {
 	}
 
 	public void handleEndOfVideo() {
-		playNewFile("vhs.mp4", Duration.ZERO, Duration.INDEFINITE, false);
+		playNewFile("vhs-kurz.mp4", Duration.ZERO, Duration.INDEFINITE, false);
 	}
 
 	public void start(Stage thePrimaryStage) throws Exception {
