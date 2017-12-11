@@ -37,7 +37,10 @@ public class Arduino {
 	private static String roomNr = "2";
 	private static Arduino[] sensors;
 	private static int reopenSensorsFrequency = 100;
+	public static VideoPlayer videoPlayer = null;
 
+	
+	
 	public static Arduino[] getSensors() {
 		return sensors;
 	}
@@ -175,9 +178,22 @@ public class Arduino {
 		}
 
 		// start VIDEO
-		Thread videoThread = new Thread(new VideoPlayer());
+		videoPlayer = new VideoPlayer();
+		Thread videoThread = new Thread(videoPlayer);
+
+		System.out.println("Starting Videoplayer");
 		videoThread.start();
 		
+		/* TEST KAISER 
+		System.out.println("Sleeping 10 sec");
+		Thread.sleep(10000);
+		System.out.println("Change to Kaiser");
+		videoPlayer.startKaiser();
+		System.out.println("Sleeping 60 sec");
+		Thread.sleep(60000);
+		System.out.println("Change to Kaiser");
+		videoPlayer.startKaiser();
+		*/
 		
 		serverIP = args[0];
 		if (args.length > 1)

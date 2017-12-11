@@ -63,6 +63,9 @@ public class URLTrigger implements Runnable {
 						if (raspberryNr==1 && "Audio".equalsIgnoreCase(befehlTyp) && "1".equals(befehlDetail)) {
 							AudioPlayer.playDoor();
 						}
+						if (raspberryNr==1 && "Video".equalsIgnoreCase(befehlTyp) && "1".equals(befehlDetail)) {
+							Arduino.videoPlayer.startKaiser();
+						}
 					}
 					else {
 						System.out.println("UNBEKANNTER BEFEHL VON TRIGGER Servlet: "+inputLine);

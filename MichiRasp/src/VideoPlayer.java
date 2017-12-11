@@ -1,4 +1,7 @@
 
+import java.io.File;
+import java.util.Random;
+
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
@@ -13,42 +16,115 @@ import javafx.util.Duration;
 
 public class VideoPlayer extends Application implements Runnable {
 
+	public VideoPlayer() {
+		super();
+		instance = this;
+	}
+
 	StackPane stack = new StackPane();
+	public static VideoPlayer instance;
 	public static MediaPlayer player;
+	public static MediaView mediaView;
+	private static Stage primaryStage;
+	static int MAX_RANDOM_LENGTH_SEC = 12 * 60;
+	static String currentFile = "";
 
-	public void start(Stage primaryStage) throws Exception {
+	public MediaPlayer initPlayer(String fileName) {
+		return initPlayer(fileName, Duration.ZERO, Duration.INDEFINITE, true);
+	}
+
+	public MediaPlayer initPlayer(String fileName, Duration start, Duration ende, boolean mute) {
+		if (currentFile.equals(fileName)) {
+			seek(start, ende);
+		} else {
+			playNewFile(fileName, start, ende, mute);
+		}
+		currentFile = fileName;
+		return player;
+	}
+
+	private void playNewFile(String fileName, Duration start, Duration ende, boolean mute) {
+		File f = new File(fileName);
+		Media media = new Media(f.toURI().toString());
+		if (player != null)
+			player.stop();
+		player = new MediaPlayer(media);
+		player.setOnEndOfMedia(new Runnable() {
+			public void run() {
+				handleEndOfVideo();
+			}
+		});
+		player.setStartTime(start);
+		player.setStopTime(ende);
+
+		System.out.println("media Duration " + media.getDuration());
+		player.setMute(mute);
+
+		if (mediaView == null) {
+			mediaView = new MediaView(player);
+
+			// 			mediaView.setEffect(null);
 
 
-		primaryStage.setScene(new Scene(new Group(new MediaView(player)), 740, 408));
-		primaryStage.centerOnScreen();
-		primaryStage.setAlwaysOnTop(true);
-		primaryStage.setResizable(true);
-		primaryStage.setTitle("Title");
-		primaryStage.show();
+			// resizeable!
+			DoubleProperty mvw = mediaView.fitWidthProperty();
+			DoubleProperty mvh = mediaView.fitHeightProperty();
+			mvw.bind(Bindings.selectDouble(mediaView.sceneProperty(), "width"));
+			mvh.bind(Bindings.selectDouble(mediaView.sceneProperty(), "height"));
+			mediaView.setPreserveRatio(true);
 
-		System.out.println("START VIDEO");
+			primaryStage.setScene(new Scene(new Group(mediaView), 740, 408));
+			primaryStage.centerOnScreen();
+			primaryStage.setAlwaysOnTop(true);
+			primaryStage.setResizable(true);
+			primaryStage.setTitle("Title");
+			primaryStage.show();
+		} else {
+			mediaView.setMediaPlayer(player);
+		}
+
 		player.play();
 	}
 
+	private void seek(Duration start, Duration ende) {
+		player.setStartTime(start);
+		player.setStopTime(ende);
+		player.seek(start);
+	}
+
+	public void handleEndOfVideo() {
+		playNewFile("vhs.mp4", Duration.ZERO, Duration.INDEFINITE, false);
+	}
+
+	public void start(Stage thePrimaryStage) throws Exception {
+		primaryStage = thePrimaryStage;
+		handleEndOfVideo();
+	}
+
 	public static void main(String[] args) {
-		Media media = new Media("http://download.oracle.com/otndocs/products/javafx/oow2010-2.flv");
-		player = new MediaPlayer(media);
-		player.setStartTime(Duration.ZERO);
-		player.setStopTime(new Duration(5000));
-		player.setOnEndOfMedia(new VideoStopObserver());
-//????
-		MediaView mv = new MediaView(player);
-		DoubleProperty mvw = mv.fitWidthProperty();
-		DoubleProperty mvh = mv.fitHeightProperty();
-		mvw.bind(Bindings.selectDouble(mv.sceneProperty(), "width"));
-		mvh.bind(Bindings.selectDouble(mv.sceneProperty(), "height"));
-		mv.setPreserveRatio(true);		
-		
+		System.out.println("Starting VIDEO PLAYER");
+		new Thread() {
+			public void run() {
+				try {
+					Thread.sleep(9000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				instance.startKaiser();
+			}
+		}.start();
+
 		Application.launch();
+		System.out.println("Finished VIDEO PLAYER");
 	}
 
 	public void run() {
-		main(null);
+		Application.launch();
+	}
+
+	public void startKaiser() {
+		System.out.println("startKaiser");
+		playNewFile("Finale2.mp4", Duration.ZERO, Duration.INDEFINITE, false);
 	}
 
 }
