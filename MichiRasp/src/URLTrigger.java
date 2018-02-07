@@ -46,14 +46,15 @@ public class URLTrigger implements Runnable {
 				if (!inputLine.equals("NOOP")) {
 					System.out.println("BEFEHL ERHALTEN: " + inputLine);
 					String[] befehl = inputLine.split("-");
+					int ardSubID = Integer.parseInt(befehl[1]);
+					int command = Integer.parseInt(befehl[2]);
+					byte b = (byte) ((ardSubID << 4) + command);
 					if ("ARD".equals(befehl[0])) {
 						for (int i = 0; i < sensors.length; i++) {
 							Arduino ard = sensors[i];
 							if (ard == null)
 								continue;
-							if (ard.getAddress() == Integer.parseInt(befehl[1])) {
-								ard.writeArduino(Byte.parseByte(befehl[2]));
-							}
+							ard.writeArduino(b);
 						}
 					}
 					else if ("RAS".equals(befehl[0])){
